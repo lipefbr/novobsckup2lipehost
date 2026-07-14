@@ -52,3 +52,20 @@ prompt
 server.log
 # Skills directory
 /skills/
+
+# Sandbox / dev artifacts
+.zscripts/
+upload/
+download/
+worklog.md
+dev.out.log
+Caddyfile
+examples/
+mini-services/
+prisma/*.db
+prisma/*.db-journal
+db/*.db
+db/*.db-journal
+public/og-image.png
+public/favicon.ico
+public/apple-touch-icon.png
