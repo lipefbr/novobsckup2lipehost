@@ -24,8 +24,9 @@ export function FeaturedSystems() {
             <span className="gradient-text">LIPE.HOST</span>
           </h2>
           <p className="mt-5 text-base text-white/60">
-            Sistemas prontos e personalizados que podem ser implantados em semanas, não meses.
-            Todos com código-fonte, painel administrativo e suporte completo.
+            Sistemas prontos e personalizados desenvolvidos pela LIPE.HOST (lipehost) que podem
+            ser implantados em semanas, não meses. Todos com código-fonte, painel administrativo
+            e suporte completo.
           </p>
         </Reveal>
 

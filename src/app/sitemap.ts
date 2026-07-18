@@ -1,29 +1,31 @@
 import type { MetadataRoute } from 'next'
 import { SYSTEMS } from '@/lib/content'
 
+const siteUrl = 'https://lipe.host'
+
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = 'https://lipe.host'
+  const now = new Date()
 
   const staticPages: MetadataRoute.Sitemap = [
     {
-      url: `${baseUrl}/`,
-      lastModified: new Date(),
+      url: `${siteUrl}/`,
+      lastModified: now,
       changeFrequency: 'weekly',
-      priority: 1,
+      priority: 1.0,
     },
     {
-      url: `${baseUrl}/loja`,
-      lastModified: new Date(),
+      url: `${siteUrl}/loja`,
+      lastModified: now,
       changeFrequency: 'weekly',
-      priority: 0.9,
+      priority: 0.95,
     },
   ]
 
   const systemPages: MetadataRoute.Sitemap = SYSTEMS.map((s) => ({
-    url: `${baseUrl}/loja/${s.slug}`,
-    lastModified: new Date(),
+    url: `${siteUrl}/loja/${s.slug}`,
+    lastModified: now,
     changeFrequency: 'monthly',
-    priority: 0.8,
+    priority: 0.85,
   }))
 
   return [...staticPages, ...systemPages]

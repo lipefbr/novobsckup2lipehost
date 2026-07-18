@@ -59,9 +59,9 @@ export function Hero() {
               transition={{ duration: 0.7, delay: 0.15 }}
               className="mt-7 text-base sm:text-lg text-white/60 leading-relaxed max-w-xl"
             >
-              Desenvolvemos aplicativos, sistemas web, marketplaces, CRMs, plataformas SaaS e
-              soluções com Inteligência Artificial. Também implantamos toda a infraestrutura para
-              colocar seu projeto em produção.
+              A LIPE.HOST (lipehost) desenvolve aplicativos, sistemas web, marketplaces, CRMs,
+              plataformas SaaS e soluções com Inteligência Artificial. Também implantamos toda a
+              infraestrutura para colocar seu projeto em produção.
             </motion.p>
 
             <motion.div

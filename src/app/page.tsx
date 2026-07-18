@@ -14,35 +14,48 @@ import { Portfolio } from '@/components/sections/portfolio'
 import { Testimonials } from '@/components/sections/testimonials'
 import { Faq } from '@/components/sections/faq'
 import { FinalCta } from '@/components/sections/final-cta'
+import { FAQ } from '@/lib/content'
+
+const siteUrl = 'https://lipe.host'
 
 export default function Home() {
+  // JSON-LD: FAQPage (all homepage FAQ questions become eligible for Google rich results)
+  const faqJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: FAQ.map((item) => ({
+      '@type': 'Question',
+      name: item.q,
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: item.a,
+      },
+    })),
+  }
+
+  // JSON-LD: BreadcrumbList for homepage
+  const breadcrumbJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      {
+        '@type': 'ListItem',
+        position: 1,
+        name: 'Início',
+        item: siteUrl,
+      },
+    ],
+  }
+
   return (
     <div className="relative min-h-screen flex flex-col">
-      {/* JSON-LD Organization schema */}
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            '@context': 'https://schema.org',
-            '@type': 'Organization',
-            name: 'LIPE.HOST',
-            description:
-              'Desenvolvimento de sistemas, aplicativos, SaaS, inteligência artificial e consultoria em infraestrutura.',
-            url: 'https://lipe.host',
-            logo: 'https://lipe.host/logo.png',
-            sameAs: [
-              'https://github.com/lipehost',
-              'https://linkedin.com/company/lipehost',
-              'https://instagram.com/lipehost',
-            ],
-            contactPoint: {
-              '@type': 'ContactPoint',
-              contactType: 'sales',
-              availableLanguage: ['Portuguese', 'English'],
-              url: 'https://lipe.host#contato',
-            },
-          }),
-        }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
       />
 
       <CursorGlow />

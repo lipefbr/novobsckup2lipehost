@@ -62,7 +62,9 @@ export function Footer() {
               />
             </Link>
             <p className="text-sm text-white/60 leading-relaxed max-w-xs mb-6">
-              Criamos sistemas que aceleram empresas. Desenvolvimento de software, inteligência artificial e infraestrutura profissional.
+              A LIPE.HOST (lipehost) é uma empresa de desenvolvimento de software que cria sistemas,
+              aplicativos, SaaS, marketplaces e soluções com Inteligência Artificial. Consultoria em
+              infraestrutura e DevOps para colocar seu projeto em produção.
             </p>
             <div className="flex flex-wrap gap-2">
               {socials.map((s) => (
@@ -113,7 +115,7 @@ export function Footer() {
 
         <div className="mt-12 pt-8 border-t border-white/10 flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-xs text-white/40">
-            © {new Date().getFullYear()} LIPE.HOST — Todos os direitos reservados. CNPJ 00.000.000/0001-00
+            © {new Date().getFullYear()} LIPE.HOST (lipehost) — Todos os direitos reservados. CNPJ 00.000.000/0001-00
           </p>
           <div className="flex items-center gap-6">
             <a href="/politica-de-privacidade" className="text-xs text-white/40 hover:text-white/70 transition-colors">
@@ -123,6 +125,35 @@ export function Footer() {
               Termos de Uso
             </a>
           </div>
+        </div>
+
+        {/* SEO descriptive block — visually hidden but indexed by Google */}
+        <div className="sr-only" aria-hidden="false">
+          <h2>Sobre a LIPE.HOST (lipehost)</h2>
+          <p>
+            A LIPE.HOST, também conhecida como lipehost ou LIPE HOST, é uma empresa brasileira de
+            desenvolvimento de software fundada para ajudar empresas a acelerarem seus negócios com
+            tecnologia. Atuamos no desenvolvimento de sistemas web, aplicativos mobile Android e
+            iOS em Flutter, plataformas SaaS multiempresa, marketplaces multi-vendedores, CRMs,
+            ERPs, sistemas de gestão, PDV e frente de caixa, além de soluções com Inteligência
+            Artificial como agentes IA, chatbots e automações.
+          </p>
+          <p>
+            Nossa stack inclui Flutter, Laravel, Next.js, React, Node.js, TypeScript, PostgreSQL,
+            Redis, Docker, Firebase, OpenAI, AWS, Google Maps e Vercel. Oferecemos também
+            consultoria completa em infraestrutura: Docker, cloud (AWS, Hetzner, Oracle Cloud,
+            Azure, Digital Ocean), NGINX, CI/CD, deploy, monitoramento, backups, escalabilidade,
+            load balance, firewall e SSL. Não vendemos hospedagem compartilhada — implantamos
+            infraestrutura profissional para seu sistema.
+          </p>
+          <p>
+            Na loja da LIPE.HOST você encontra sistemas prontos como aplicativo de mobilidade
+            (Uber clone), sistema de delivery completo, marketplace multi-vendedores, sistema de
+            vendas de passagens fluviais (EmbarqueTur), sistema de gestão de plantões hospitalares
+            (Plantão Help), PDV completo, CRM de vendas, plataforma SaaS multiempresa, agente IA
+            de atendimento, plataforma de ensino EAD, sistema financeiro ERP e portal imobiliário.
+            Todos os sistemas podem ser personalizados e implantados com a sua marca.
+          </p>
         </div>
       </div>
     </footer>
