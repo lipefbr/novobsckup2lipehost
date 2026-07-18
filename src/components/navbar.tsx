@@ -3,7 +3,8 @@
 import * as React from 'react'
 import Link from 'next/link'
 import { motion, AnimatePresence, useScroll, useMotionValueEvent } from 'framer-motion'
-import { Menu, X, Rocket, ArrowRight } from 'lucide-react'
+import { Menu, X, ArrowRight } from 'lucide-react'
+import Image from 'next/image'
 import { NAV_LINKS } from '@/lib/content'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -38,15 +39,15 @@ export function Navbar() {
           )}
         >
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 group">
-            <div className="relative size-8 rounded-lg gradient-bg flex items-center justify-center overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-br from-blue-400 to-purple-500 opacity-100" />
-              <Rocket className="relative size-4 text-white" strokeWidth={2.5} />
-              <div className="absolute inset-0 bg-white/20 blur-md opacity-0 group-hover:opacity-100 transition-opacity" />
-            </div>
-            <span className="font-extrabold text-lg tracking-tight">
-              LIPE<span className="gradient-text">.HOST</span>
-            </span>
+          <Link href="/" className="flex items-center group" aria-label="LIPE.HOST">
+            <Image
+              src="/lipehost-logo-navbar.png"
+              alt="LIPE.HOST"
+              width={129}
+              height={32}
+              priority
+              className="h-8 w-auto opacity-90 group-hover:opacity-100 transition-opacity"
+            />
           </Link>
 
           {/* Desktop nav */}
@@ -103,13 +104,14 @@ export function Navbar() {
             >
               <SheetTitle className="sr-only">Menu de navegação</SheetTitle>
               <div className="flex items-center justify-between p-6 border-b border-white/10">
-                <Link href="/" onClick={() => setMobileOpen(false)} className="flex items-center gap-2">
-                  <div className="size-8 rounded-lg gradient-bg flex items-center justify-center">
-                    <Rocket className="size-4 text-white" strokeWidth={2.5} />
-                  </div>
-                  <span className="font-extrabold text-lg">
-                    LIPE<span className="gradient-text">.HOST</span>
-                  </span>
+                <Link href="/" onClick={() => setMobileOpen(false)} className="flex items-center" aria-label="LIPE.HOST">
+                  <Image
+                    src="/lipehost-logo-navbar.png"
+                    alt="LIPE.HOST"
+                    width={129}
+                    height={32}
+                    className="h-8 w-auto opacity-90"
+                  />
                 </Link>
                 <SheetClose asChild>
                   <Button variant="ghost" size="icon" className="text-white hover:bg-white/10">

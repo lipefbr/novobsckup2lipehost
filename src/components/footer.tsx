@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { Rocket, Github, Linkedin, Instagram, Mail, MessageCircle, ArrowUpRight } from 'lucide-react'
 
 const footerCols = [
@@ -51,13 +52,14 @@ export function Footer() {
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-10">
           {/* Brand */}
           <div className="col-span-2 lg:col-span-2">
-            <Link href="/" className="flex items-center gap-2 mb-5">
-              <div className="size-9 rounded-lg gradient-bg flex items-center justify-center">
-                <Rocket className="size-5 text-white" strokeWidth={2.5} />
-              </div>
-              <span className="font-extrabold text-xl">
-                LIPE<span className="gradient-text">.HOST</span>
-              </span>
+            <Link href="/" className="flex items-center mb-5" aria-label="LIPE.HOST">
+              <Image
+                src="/lipehost-logo-navbar.png"
+                alt="LIPE.HOST"
+                width={161}
+                height={40}
+                className="h-10 w-auto opacity-90 hover:opacity-100 transition-opacity"
+              />
             </Link>
             <p className="text-sm text-white/60 leading-relaxed max-w-xs mb-6">
               Criamos sistemas que aceleram empresas. Desenvolvimento de software, inteligência artificial e infraestrutura profissional.
