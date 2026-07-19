@@ -2,9 +2,9 @@
 
 import * as React from 'react'
 import Link from 'next/link'
-import { motion, AnimatePresence, useScroll, useMotionValueEvent } from 'framer-motion'
-import { Menu, X, ArrowRight } from 'lucide-react'
 import Image from 'next/image'
+import { motion, useScroll, useMotionValueEvent } from 'framer-motion'
+import { Menu, X, ArrowRight, LogIn } from 'lucide-react'
 import { NAV_LINKS } from '@/lib/content'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -73,8 +73,18 @@ export function Navbar() {
             )}
           </nav>
 
-          {/* CTA */}
-          <div className="hidden lg:flex items-center gap-3">
+          {/* CTA — Entrar + Solicitar Projeto */}
+          <div className="hidden lg:flex items-center gap-2">
+            <Link href="/login">
+              <Button
+                size="sm"
+                variant="ghost"
+                className="text-white/80 hover:text-white hover:bg-white/10 font-medium gap-1.5"
+              >
+                <LogIn className="size-4" />
+                Entrar
+              </Button>
+            </Link>
             <Link href="#contato">
               <Button
                 size="sm"
@@ -146,7 +156,20 @@ export function Navbar() {
                     )}
                   </motion.div>
                 ))}
-                <Link href="#contato" onClick={() => setMobileOpen(false)} className="mt-4">
+
+                {/* Login button — mobile */}
+                <Link
+                  href="/login"
+                  onClick={() => setMobileOpen(false)}
+                  className="mt-4 block px-4 py-3 text-base font-medium text-white/80 hover:text-white hover:bg-white/5 rounded-xl transition-colors border border-white/10"
+                >
+                  <span className="inline-flex items-center gap-2">
+                    <LogIn className="size-4" />
+                    Entrar / Registrar-se
+                  </span>
+                </Link>
+
+                <Link href="#contato" onClick={() => setMobileOpen(false)} className="mt-3">
                   <Button className="w-full gradient-bg border-0 text-white font-semibold h-12">
                     Solicitar Projeto
                     <ArrowRight className="size-4" />
