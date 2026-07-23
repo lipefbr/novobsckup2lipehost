@@ -211,8 +211,8 @@ export default function ChatPage() {
     }
   }
 
-  // When user clicks a deploy button, navigate to project detail page
-  const handleDeployClick = (deployId: string, deployName: string) => {
+  // When user clicks a deploy button, auto-diagnose AND offer auto-redeploy
+  const handleDeployClick = async (deployId: string, deployName: string) => {
     // First add a user message indicating the choice
     const now = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
     const userChoice: ChatMessage = {
@@ -222,9 +222,117 @@ export default function ChatPage() {
       time: now,
     }
     setMessages((prev) => [...prev, userChoice])
+    setLoading(true)
 
-    // Navigate to the project detail page (where they can click Deploy button)
-    router.push(`/painel/projetos/${deployId}`)
+    // Step 1: Tell user we're checking
+    const checkingMsg: ChatMessage = {
+      id: (Date.now() + 1).toString(),
+      role: 'assistant',
+      content: `🔍 Analisando o site **${deployName}**...\n\nVerificando status HTTP e lendo logs do servidor. Aguarde alguns segundos.`,
+      time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+    }
+    setMessages((prev) => [...prev, checkingMsg])
+
+    // Step 2: Call AI to diagnose
+    try {
+      const historyForApi = [...messages, userChoice]
+        .filter((m) => m.id !== 'greeting')
+        .map((m) => ({ role: m.role, content: m.content }))
+
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: historyForApi }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Erro na IA')
+
+      // Step 3: Show AI diagnosis
+      const diagnosisMsg: ChatMessage = {
+        id: (Date.now() + 2).toString(),
+        role: 'assistant',
+        content: data.message,
+        time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+        deployLinks: [{ id: deployId, name: deployName }],
+      }
+      setMessages((prev) => [...prev, diagnosisMsg])
+
+      // Step 4: If site is down, auto-start redeploy in background
+      // Check if AI detected a problem (HTTP failed, error status, etc.)
+      const aiText = (data.message || '').toLowerCase()
+      const siteDown = aiText.includes('fetch failed') || aiText.includes('timeout') ||
+        aiText.includes('connection refused') || aiText.includes('erro') ||
+        aiText.includes('não está abrindo') || aiText.includes('fora do ar') ||
+        aiText.includes('redeploy') || aiText.includes('module_not_found')
+
+      if (siteDown) {
+        // Auto-start redeploy!
+        const redeployMsg: ChatMessage = {
+          id: (Date.now() + 3).toString(),
+          role: 'assistant',
+          content: `🔧 Detectei o problema! Iniciando **redeploy automático** em segundo plano...\n\n⏳ O site está sendo reconstruído. Você pode continuar conversando comigo enquanto isso.\n\nVou te avisar quando terminar!`,
+          time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+        }
+        setMessages((prev) => [...prev, redeployMsg])
+
+        // Call the action API to trigger redeploy
+        try {
+          const actionRes = await fetch('/api/chat/action', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'redeploy', deployId }),
+          })
+          const actionData = await actionRes.json()
+
+          if (actionData.success) {
+            // Poll for deploy status every 15 seconds
+            const pollInterval = setInterval(async () => {
+              try {
+                const statusRes = await fetch(`/api/deploys/${deployId}`)
+                const statusData = await statusRes.json()
+                if (statusData.deploy?.status === 'ready') {
+                  clearInterval(pollInterval)
+                  // Check if site is back up
+                  const successMsg: ChatMessage = {
+                    id: Date.now().toString() + 'x',
+                    role: 'assistant',
+                    content: `✅ **Redeploy concluído!**\n\nO site **${deployName}** foi reconstruído com sucesso e está no ar novamente!\n\nVerifique se está funcionando: ${statusData.deploy.previewUrl || ''}\n\nSe ainda houver problemas, posso criar um ticket para o suporte humano: /painel/tickets`,
+                    time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+                    deployLinks: [{ id: deployId, name: deployName }],
+                  }
+                  setMessages((prev) => [...prev, successMsg])
+                } else if (statusData.deploy?.status === 'error') {
+                  clearInterval(pollInterval)
+                  const errorMsg: ChatMessage = {
+                    id: Date.now().toString() + 'x',
+                    role: 'assistant',
+                    content: `❌ O redeploy encontrou um erro.\n\nErro: ${statusData.deploy.errorMessage || 'desconhecido'}\n\nPosso criar um ticket para o suporte humano investigar: /painel/tickets`,
+                    time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+                  }
+                  setMessages((prev) => [...prev, errorMsg])
+                }
+                // If still 'building', keep polling
+              } catch {}
+            }, 15000) // Check every 15 seconds
+
+            // Stop polling after 5 minutes
+            setTimeout(() => clearInterval(pollInterval), 5 * 60 * 1000)
+          }
+        } catch (redeployErr) {
+          const errMsg: ChatMessage = {
+            id: (Date.now() + 4).toString(),
+            role: 'assistant',
+            content: `⚠️ Não consegui iniciar o redeploy automático. Por favor, acesse /painel/projetos/${deployId} e clique em "Deploy" manualmente.`,
+            time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+          }
+          setMessages((prev) => [...prev, errMsg])
+        }
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao falar com a IA')
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleSubmit = (e: React.FormEvent) => {
