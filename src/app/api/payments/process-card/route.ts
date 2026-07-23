@@ -126,7 +126,6 @@ export async function POST(req: Request) {
         payment_methods: {
           excluded_payment_types: [{ id: 'ticket' }, { id: 'atm' }],
           installments: 12,
-          default_payment_method_id: 'credit_card',
         },
         back_urls: {
           success: `${baseUrl}/painel/checkout?payment=${payment.id}`,

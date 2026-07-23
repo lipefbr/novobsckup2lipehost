@@ -67,22 +67,30 @@ export async function POST(req: Request) {
       )
     }
 
-    // Check if user already has active subscription to this plan
-    const existingSub = await db.subscription.findFirst({
+    // Check if user already has an ACTIVE (paid) subscription to this plan
+    // 'trialing' (pending payment) does NOT count — user can retry
+    const existingActiveSub = await db.subscription.findFirst({
       where: {
         userId,
         planId,
-        status: { in: ['active', 'trialing'] },
+        status: 'active', // Only block if actually paid
       },
     })
-    if (existingSub) {
-      return NextResponse.json({ error: 'Você já tem assinatura ativa neste plano' }, { status: 400 })
+    if (existingActiveSub) {
+      return NextResponse.json({ error: 'Você já tem assinatura ativa e paga neste plano' }, { status: 400 })
     }
 
-    // Cancel any existing active subscription (user is switching plans)
+    // Cancel any existing trialing/pending subscriptions (user is retrying or switching)
+    // This cleans up old pending payments and subscriptions
     await db.subscription.updateMany({
-      where: { userId, status: { in: ['active', 'trialing'] } },
+      where: { userId, status: { in: ['trialing', 'past_due'] } },
       data: { status: 'canceled', canceledAt: new Date() },
+    })
+
+    // Also cancel old pending payments for this user (cleanup)
+    await db.payment.updateMany({
+      where: { userId, status: 'pending' },
+      data: { status: 'cancelled' },
     })
 
     // 1. Create customer in MP
