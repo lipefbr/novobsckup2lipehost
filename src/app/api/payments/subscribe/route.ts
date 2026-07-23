@@ -220,10 +220,10 @@ export async function POST(req: Request) {
         paymentId: payment.id,
         paymentMethod: 'credit_card',
         preferenceId: prefResult.preferenceId,
-        initPoint: prefResult.initPoint,
+        checkoutUrl: `/painel/checkout?payment=${payment.id}`,
         amount: plan.priceMonthly,
         dueDate: pixExpiresAt.toISOString(),
-        message: 'Você será redirecionado para o checkout do Mercado Pago. Após pagamento aprovado, sua assinatura será ativada.',
+        message: 'Você será redirecionado para o checkout seguro.',
       })
     }
   } catch (error) {

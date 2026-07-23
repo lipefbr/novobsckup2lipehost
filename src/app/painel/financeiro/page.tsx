@@ -169,8 +169,16 @@ export default function FinanceiroPage() {
                       </div>
                     )}
                     {p.paymentMethod === 'credit_card' && (
-                      <Link href="/painel/planos">
+                      <Link href={`/painel/checkout?payment=${p.id}`}>
                         <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white">
+                          <CreditCard className="size-3.5" /> Pagar agora
+                        </Button>
+                      </Link>
+                    )}
+                    {/* Generic "Pagar agora" button — opens checkout for any pending payment */}
+                    {p.paymentMethod !== 'credit_card' && !p.mpPixQrCode && (
+                      <Link href={`/painel/checkout?payment=${p.id}`}>
+                        <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-white">
                           <CreditCard className="size-3.5" /> Pagar agora
                         </Button>
                       </Link>

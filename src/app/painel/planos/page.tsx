@@ -310,6 +310,7 @@ function SubscribeModal({
     qrCodeImage?: string
     ticketUrl?: string
     initPoint?: string
+    checkoutUrl?: string
     amount: number
   } | null>(null)
   const [copied, setCopied] = React.useState(false)
@@ -344,9 +345,9 @@ function SubscribeModal({
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
 
-      if (paymentMethod === 'credit_card' && data.initPoint) {
-        // Redirect to MP checkout
-        window.location.href = data.initPoint
+      if (paymentMethod === 'credit_card' && data.checkoutUrl) {
+        // Redirect to embedded checkout page (inside our site)
+        window.location.href = data.checkoutUrl
         return
       }
 

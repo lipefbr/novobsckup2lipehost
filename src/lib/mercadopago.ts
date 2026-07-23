@@ -101,6 +101,7 @@ export function formatCPF(cpf: string): string {
 /**
  * Create or update a customer in Mercado Pago.
  * Required for recurring payments (saves card to customer).
+ * If customer already exists (same email), returns the existing ID.
  */
 export async function createMPCustomer(params: {
   email: string
@@ -115,7 +116,17 @@ export async function createMPCustomer(params: {
       return { success: false, error: 'CPF inválido' }
     }
 
-    const body = {
+    // First, try to find existing customer by email
+    const searchRes = await mpFetch(`/customers/search?email=${encodeURIComponent(params.email)}`)
+    const searchData = await searchRes.json().catch(() => ({}))
+    if (searchData?.results?.[0]?.id) {
+      // Customer already exists — return their ID
+      return { success: true, customerId: searchData.results[0].id }
+    }
+
+    // Build customer body — only include phone if it has enough digits
+    const phoneDigits = (params.phone || '').replace(/\D/g, '')
+    const body: Record<string, unknown> = {
       email: params.email,
       first_name: params.firstName,
       last_name: params.lastName || '',
@@ -123,12 +134,13 @@ export async function createMPCustomer(params: {
         type: 'CPF',
         number: cpf,
       },
-      ...(params.phone ? {
-        phone: {
-          area_code: params.phone.replace(/\D/g, '').substring(0, 2),
-          number: params.phone.replace(/\D/g, '').substring(2),
-        }
-      } : {}),
+    }
+    // Only add phone if it has at least 10 digits (area + number)
+    if (phoneDigits.length >= 10) {
+      body.phone = {
+        area_code: phoneDigits.substring(0, 2),
+        number: phoneDigits.substring(2),
+      }
     }
 
     const res = await mpFetch('/customers', {
@@ -136,18 +148,20 @@ export async function createMPCustomer(params: {
       body: JSON.stringify(body),
     })
 
-    const data = await res.json()
+    const data = await res.json().catch(() => ({}))
 
     if (!res.ok) {
-      // If customer already exists, search for them
-      if (data.cause?.some((c: { code?: string }) => c.code === '400' || data.message?.includes('already exists'))) {
-        const searchRes = await mpFetch(`/customers/search?email=${encodeURIComponent(params.email)}`)
-        const searchData = await searchRes.json()
-        if (searchData.results?.[0]?.id) {
-          return { success: true, customerId: searchData.results[0].id }
+      // Check if customer already exists (different error patterns)
+      const errorMsg = JSON.stringify(data).toLowerCase()
+      if (errorMsg.includes('already') || errorMsg.includes('exist') || data.status === 400) {
+        // Try search again (race condition)
+        const searchRes2 = await mpFetch(`/customers/search?email=${encodeURIComponent(params.email)}`)
+        const searchData2 = await searchRes2.json().catch(() => ({}))
+        if (searchData2?.results?.[0]?.id) {
+          return { success: true, customerId: searchData2.results[0].id }
         }
       }
-      return { success: false, error: data.message || 'Failed to create customer' }
+      return { success: false, error: data.message || JSON.stringify(data.cause || data) || 'Failed to create customer' }
     }
 
     return { success: true, customerId: data.id }
