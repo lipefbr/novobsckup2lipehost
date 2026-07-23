@@ -43,6 +43,23 @@ export function PainelShell({ children }: ShellProps) {
     }
   }, [status, session, pathname, router])
 
+  // Fetch fresh profile data (name, avatar) — guarantees the name shown
+  // is always the latest from the database, even after the user edits
+  // their profile in /painel/perfil
+  const [profileData, setProfileData] = React.useState<{ name?: string; avatar?: string | null } | null>(null)
+  React.useEffect(() => {
+    fetch('/api/user/profile')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.user?.name) {
+          setProfileData({ name: data.user.name, avatar: data.user.avatar })
+        }
+      })
+      .catch(() => {
+        // Ignore — fall back to session data
+      })
+  }, [])
+
   // NOTE: Auth is handled by middleware (server-side cookie check).
   // If we reach here, the user IS authenticated.
   // useSession() might return 'unauthenticated' due to Cloudflare proxy
@@ -64,7 +81,9 @@ export function PainelShell({ children }: ShellProps) {
   // Use session data if available, otherwise use fallback
   // (middleware verified the cookie exists, so user IS logged in)
 
-  const userName = session?.user?.name ?? 'Usuário'
+  // Use profile data (fresh from API) first, fall back to session, then to 'Usuário'
+  const userName = profileData?.name || session?.user?.name || 'Usuário'
+  const userAvatar = profileData?.avatar || session?.user?.image
   const userEmail = session?.user?.email ?? ''
   const initials = userName
     .split(' ')
@@ -239,8 +258,13 @@ export function PainelShell({ children }: ShellProps) {
               href="/painel/perfil"
               className="flex items-center gap-2.5 pl-3 border-l border-slate-200"
             >
-              <div className="size-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-xs font-bold">
-                {initials}
+              <div className="size-8 rounded-full overflow-hidden bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                {userAvatar ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={userAvatar} alt={userName} className="size-full object-cover" />
+                ) : (
+                  <span>{initials}</span>
+                )}
               </div>
               <div className="hidden sm:block">
                 <div className="text-xs font-semibold text-slate-900 leading-tight">{userName}</div>

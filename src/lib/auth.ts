@@ -74,17 +74,40 @@ export const authOptions: NextAuthOptions = {
     signIn: '/login',
   },
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
+      // Initial sign in — save user data to token
       if (user) {
         token.role = (user as { role?: string }).role ?? 'USER'
         token.id = user.id
+        token.name = user.name
+        token.email = user.email
+      }
+      // Update — when client calls updateSession({ user: { name: 'new name' } })
+      // This refreshes the token with new data from the client
+      if (trigger === 'update' && session) {
+        if (session.user?.name) {
+          token.name = session.user.name
+        }
+        if (session.user?.image) {
+          token.picture = session.user.image
+        }
       }
       return token
     },
     async session({ session, token }) {
       if (session.user) {
+        // Always sync from token — guarantees name is fresh even after profile edit
         ;(session.user as { role?: string }).role = token.role as string
         ;(session.user as { id?: string }).id = token.id as string
+        if (token.name) {
+          session.user.name = token.name as string
+        }
+        if (token.email) {
+          session.user.email = token.email as string
+        }
+        if (token.picture) {
+          session.user.image = token.picture as string | null
+        }
       }
       return session
     },
