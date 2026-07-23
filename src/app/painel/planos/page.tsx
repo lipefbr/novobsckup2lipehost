@@ -418,16 +418,16 @@ function SubscribeModal({
             )}
             {result.qrCode && (
               <div>
-                <Label className="text-xs text-slate-600 mb-1 block">Ou copie o código PIX:</Label>
+                <Label className="text-xs text-slate-600 mb-1 block">Pix copia e cola:</Label>
                 <div className="flex items-center gap-2">
-                  <div className="flex-1 px-3 py-2 rounded-lg bg-slate-900 text-slate-100 text-xs font-mono overflow-x-auto max-h-20">
+                  <div className="flex-1 px-3 py-2 rounded-lg bg-slate-100 border border-slate-300 text-slate-900 text-xs font-mono overflow-hidden whitespace-nowrap text-ellipsis">
                     {result.qrCode}
                   </div>
                   <button
                     onClick={copyQrCode}
-                    className="size-9 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center flex-shrink-0"
+                    className="px-3 h-9 rounded-lg bg-slate-900 hover:bg-slate-800 flex items-center justify-center flex-shrink-0 text-white text-xs font-semibold gap-1"
                   >
-                    {copied ? <Check className="size-4 text-emerald-600" /> : <Copy className="size-4" />}
+                    {copied ? <><Check className="size-3.5" /> Copiado</> : <><Copy className="size-3.5" /> Copiar</>}
                   </button>
                 </div>
               </div>
@@ -436,13 +436,6 @@ function SubscribeModal({
               <p><strong>Valor:</strong> R$ {result.amount.toFixed(2)}</p>
               <p className="mt-1">Após o pagamento, sua assinatura será ativada automaticamente em alguns segundos.</p>
             </div>
-            {result.ticketUrl && (
-              <a href={result.ticketUrl} target="_blank" rel="noopener noreferrer">
-                <Button variant="outline" className="w-full">
-                  Abrir no Mercado Pago
-                </Button>
-              </a>
-            )}
             <Button onClick={onSubscribed} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white">
               <Check className="size-4" /> Concluir
             </Button>
