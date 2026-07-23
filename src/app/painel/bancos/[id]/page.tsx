@@ -214,9 +214,38 @@ export default function DatabaseDetailPage({ params }: { params: Promise<{ id: s
 
   const selectTable = (tableName: string) => {
     setSelectedTable(tableName)
-    setSql(`SELECT * FROM "${tableName}" LIMIT 100;`)
+    const query = `SELECT * FROM "${tableName}" LIMIT 100;`
+    setSql(query)
     // Switch to SQL tab so user sees the query ready to run
     setActiveTab('sql')
+    // Auto-execute the query so user sees the data immediately
+    setTimeout(() => runQueryWith(query), 100)
+  }
+
+  // Run query with a specific SQL string (used by selectTable to auto-run)
+  const runQueryWith = async (sqlToRun: string) => {
+    if (!sqlToRun.trim()) return
+    setQuerying(true)
+    setQueryError(null)
+    setQueryResult(null)
+    try {
+      const res = await fetch(`/api/databases/${id}/query`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sql: sqlToRun }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      setQueryResult({
+        rows: data.rows || [],
+        columns: data.columns || [],
+        rowCount: data.rowCount || 0,
+      })
+    } catch (err) {
+      setQueryError(err instanceof Error ? err.message : 'Erro ao executar query')
+    } finally {
+      setQuerying(false)
+    }
   }
 
   if (loading) {
@@ -304,14 +333,6 @@ export default function DatabaseDetailPage({ params }: { params: Promise<{ id: s
             <Server className="size-4 text-blue-600" />
             Connection Strings
           </h2>
-
-          {/* DNS setup warning */}
-          <div className="mb-4 rounded-lg bg-amber-50 border border-amber-200 p-3 text-xs text-amber-900">
-            <strong>⚠️ Importante:</strong> Para que o subdomínio <code className="font-mono bg-amber-100 px-1 rounded">{database.host}</code> funcione,
-            você precisa adicionar no Cloudflare um registro DNS wildcard <code className="font-mono bg-amber-100 px-1 rounded">*.db</code> apontando
-            para <code className="font-mono bg-amber-100 px-1 rounded">209.145.62.238</code> com <strong>Proxy status = DNS only (nuvem CINZA, NÃO laranja)</strong>.
-            Se deixar laranja, o Cloudflare bloqueia a porta 5432. Enquanto não configurar, use a connection string de IP abaixo.
-          </div>
 
           <div className="space-y-3">
             {/* Subdomain connection string (plain — for psql, pg, DBeaver) */}
