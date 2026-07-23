@@ -56,24 +56,52 @@ function InlineRenderer({ text, router }: { text: string; router: ReturnType<typ
   let key = 0
 
   while (remaining.length > 0) {
+    // Strip ** around paths: **/painel/planos** → /painel/planos
+    // Match paths even inside bold markdown
+    const pathMatch = remaining.match(/\/(?:painel\/[\w/]+|loja\/[\w/]+|admin\/\w+)/)
     const boldMatch = remaining.match(/\*\*(.+?)\*\*/)
-    const pathMatch = remaining.match(/\/(painel\/\w+(?:\/\w+)?|loja\/\w+(?:\/\w+)?|admin\/\w+)/)
-    const boldIdx = boldMatch ? remaining.indexOf(boldMatch[0]) : -1
-    const pathIdx = pathMatch ? remaining.indexOf(pathMatch[0]) : -1
 
-    if (boldIdx === -1 && pathIdx === -1) {
+    const pathIdx = pathMatch ? remaining.indexOf(pathMatch[0]) : -1
+    const boldIdx = boldMatch ? remaining.indexOf(boldMatch[0]) : -1
+
+    if (pathIdx === -1 && boldIdx === -1) {
       parts.push(<span key={key++}>{remaining}</span>)
       break
     }
 
-    if (pathIdx !== -1 && (boldIdx === -1 || pathIdx < boldIdx)) {
-      if (pathIdx > 0) parts.push(<span key={key++}>{remaining.substring(0, pathIdx)}</span>)
-      parts.push(<PathButton key={key++} path={pathMatch![0]} router={router} />)
-      remaining = remaining.substring(pathIdx + pathMatch![0].length)
-    } else {
-      if (boldIdx > 0) parts.push(<span key={key++}>{remaining.substring(0, boldIdx)}</span>)
-      parts.push(<strong key={key++} className="font-semibold text-slate-900">{boldMatch![1]}</strong>)
-      remaining = remaining.substring(boldIdx + boldMatch![0].length)
+    // If a path is found, render it as a button (even if inside **)
+    if (pathIdx !== -1 && (boldIdx === -1 || pathIdx <= boldIdx)) {
+      // Check if path is inside **bold** — if so, skip the ** before it
+      if (pathIdx >= 2 && remaining[pathIdx - 1] === '*' && remaining[pathIdx - 2] === '*') {
+        // Render text before the **
+        if (pathIdx - 2 > 0) parts.push(<span key={key++}>{remaining.substring(0, pathIdx - 2)}</span>)
+        parts.push(<PathButton key={key++} path={pathMatch![0]} router={router} />)
+        // Skip the path + trailing ** if present
+        let afterPath = pathIdx + pathMatch![0].length
+        if (afterPath < remaining.length && remaining[afterPath] === '*' && remaining[afterPath + 1] === '*') {
+          afterPath += 2
+        }
+        remaining = remaining.substring(afterPath)
+      } else {
+        if (pathIdx > 0) parts.push(<span key={key++}>{remaining.substring(0, pathIdx)}</span>)
+        parts.push(<PathButton key={key++} path={pathMatch![0]} router={router} />)
+        remaining = remaining.substring(pathIdx + pathMatch![0].length)
+      }
+    } else if (boldIdx !== -1) {
+      // Check if the bold text contains a path
+      const boldContent = boldMatch![1]
+      const innerPath = boldContent.match(/\/(?:painel\/[\w/]+|loja\/[\w/]+|admin\/\w+)/)
+      if (innerPath) {
+        // The bold text contains a path — render as button
+        if (boldIdx > 0) parts.push(<span key={key++}>{remaining.substring(0, boldIdx)}</span>)
+        parts.push(<PathButton key={key++} path={innerPath[0]} router={router} />)
+        remaining = remaining.substring(boldIdx + boldMatch![0].length)
+      } else {
+        // Regular bold
+        if (boldIdx > 0) parts.push(<span key={key++}>{remaining.substring(0, boldIdx)}</span>)
+        parts.push(<strong key={key++} className="font-semibold text-slate-900">{boldContent}</strong>)
+        remaining = remaining.substring(boldIdx + boldMatch![0].length)
+      }
     }
   }
 
