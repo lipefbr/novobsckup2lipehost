@@ -101,15 +101,17 @@ export async function POST(req: Request) {
       )
     }
 
-    // 2. Create subscription in our DB
+    // 2. Create subscription in our DB — status 'trialing' until payment is confirmed
     const now = new Date()
     const nextBillingDate = getNextBillingDate(now)
+    // PIX expires in 5 minutes
+    const pixExpiresAt = new Date(now.getTime() + 5 * 60 * 1000)
 
     const subscription = await db.subscription.create({
       data: {
         userId,
         planId,
-        status: 'active',
+        status: 'trialing', // Waiting for payment — NOT active yet
         paymentMethod,
         mpCustomerId: customerResult.customerId,
         currentPeriodStart: now,
@@ -118,7 +120,7 @@ export async function POST(req: Request) {
       },
     })
 
-    // 3. Create the first payment
+    // 3. Create the first payment — status 'pending'
     const payment = await db.payment.create({
       data: {
         subscriptionId: subscription.id,
@@ -127,7 +129,7 @@ export async function POST(req: Request) {
         amount: plan.priceMonthly,
         paymentMethod,
         status: 'pending',
-        dueDate: nextBillingDate,
+        dueDate: pixExpiresAt, // 5 min to pay
         customerCpf: cpf,
         customerName: user.name,
         customerEmail: user.email,
@@ -144,10 +146,13 @@ export async function POST(req: Request) {
         customerEmail: user.email,
         customerCpf: cpf,
         externalReference: payment.id,
-        dueDate: nextBillingDate,
+        dueDate: pixExpiresAt, // 5 min expiration
       })
 
       if (!pixResult.success) {
+        // Delete the subscription since payment failed
+        await db.subscription.delete({ where: { id: subscription.id } })
+        await db.payment.delete({ where: { id: payment.id } })
         return NextResponse.json(
           { error: 'Erro ao gerar PIX', details: pixResult.error },
           { status: 500 }
@@ -165,15 +170,8 @@ export async function POST(req: Request) {
         },
       })
 
-      // Update user plan immediately (will be suspended if not paid in 3 days via cron)
-      await db.user.update({
-        where: { id: userId },
-        data: {
-          plan: plan.slug.toUpperCase(),
-          planStatus: 'active',
-          planRenewalDate: nextBillingDate,
-        },
-      })
+      // DO NOT activate plan yet — only activate when payment is confirmed via webhook
+      // User plan stays as-is until payment.approved
 
       return NextResponse.json({
         paymentId: payment.id,
@@ -182,8 +180,8 @@ export async function POST(req: Request) {
         qrCodeImage: pixResult.qrCodeImage,
         ticketUrl: pixResult.ticketUrl,
         amount: plan.priceMonthly,
-        dueDate: nextBillingDate,
-        message: 'Escaneie o QR code do PIX para pagar. Após confirmação, sua assinatura estará ativa.',
+        expiresAt: pixExpiresAt.toISOString(),
+        message: 'Escaneie o QR code do PIX para pagar. Você tem 5 minutos. Após pagamento, sua assinatura será ativada automaticamente.',
       })
     } else {
       // Credit card — create checkout preference
@@ -199,6 +197,9 @@ export async function POST(req: Request) {
       })
 
       if (!prefResult.success) {
+        // Delete the subscription since payment failed
+        await db.subscription.delete({ where: { id: subscription.id } })
+        await db.payment.delete({ where: { id: payment.id } })
         return NextResponse.json(
           { error: 'Erro ao criar checkout', details: prefResult.error },
           { status: 500 }
@@ -212,15 +213,8 @@ export async function POST(req: Request) {
         },
       })
 
-      // Update user plan
-      await db.user.update({
-        where: { id: userId },
-        data: {
-          plan: plan.slug.toUpperCase(),
-          planStatus: 'active',
-          planRenewalDate: nextBillingDate,
-        },
-      })
+      // DO NOT activate plan yet — only activate when payment is confirmed via webhook
+      // User will be redirected to MP checkout; on success, webhook activates the plan
 
       return NextResponse.json({
         paymentId: payment.id,
@@ -228,8 +222,8 @@ export async function POST(req: Request) {
         preferenceId: prefResult.preferenceId,
         initPoint: prefResult.initPoint,
         amount: plan.priceMonthly,
-        dueDate: nextBillingDate,
-        message: 'Você será redirecionado para o checkout do Mercado Pago.',
+        dueDate: pixExpiresAt.toISOString(),
+        message: 'Você será redirecionado para o checkout do Mercado Pago. Após pagamento aprovado, sua assinatura será ativada.',
       })
     }
   } catch (error) {

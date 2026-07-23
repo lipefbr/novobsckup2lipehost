@@ -43,18 +43,36 @@ interface MPCustomer {
 }
 
 /**
- * Helper: make an authenticated request to MP API
+ * Helper: make an authenticated request to MP API.
+ * For POST /payments, MP requires X-Idempotency-Key header (unique per payment).
  */
-async function mpFetch(endpoint: string, options: RequestInit = {}): Promise<Response> {
+async function mpFetch(endpoint: string, options: RequestInit = {}, idempotencyKey?: string): Promise<Response> {
   const url = endpoint.startsWith('http') ? endpoint : `${MP_API_BASE}${endpoint}`
+  const headers: Record<string, string> = {
+    'Authorization': `Bearer ${MP_ACCESS_TOKEN}`,
+    'Content-Type': 'application/json',
+    ...(options.headers as Record<string, string> || {}),
+  }
+  // MP requires X-Idempotency-Key for payment creation (prevents duplicate charges)
+  if (idempotencyKey) {
+    headers['X-Idempotency-Key'] = idempotencyKey
+  }
   return fetch(url, {
     ...options,
-    headers: {
-      'Authorization': `Bearer ${MP_ACCESS_TOKEN}`,
-      'Content-Type': 'application/json',
-      ...(options.headers || {}),
-    },
+    headers,
   })
+}
+
+/**
+ * Generate a unique idempotency key for MP payments.
+ * Uses crypto.randomUUID() if available, falls back to timestamp + random.
+ */
+function generateIdempotencyKey(): string {
+  try {
+    return crypto.randomUUID()
+  } catch {
+    return `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`
+  }
 }
 
 /**
@@ -183,7 +201,7 @@ export async function createPixPayment(params: {
     const res = await mpFetch('/payments', {
       method: 'POST',
       body: JSON.stringify(body),
-    })
+    }, generateIdempotencyKey())
 
     const data = await res.json()
 

@@ -62,8 +62,14 @@ export async function POST(req: Request) {
         },
       })
 
-      // If payment was approved, update subscription
+      // If payment was approved, update subscription + activate plan
       if (newStatus === 'approved' && payment.subscriptionId) {
+        // Get the plan info to update user's plan field
+        const sub = await db.subscription.findUnique({
+          where: { id: payment.subscriptionId },
+          include: { plan: true },
+        })
+
         await db.subscription.update({
           where: { id: payment.subscriptionId },
           data: {
@@ -74,13 +80,23 @@ export async function POST(req: Request) {
           },
         })
 
-        // Update user plan status
-        if (payment.user) {
+        // ACTIVATE THE PLAN — update user's plan from FREE to the paid plan
+        if (sub?.plan) {
+          await db.user.update({
+            where: { id: payment.userId },
+            data: {
+              plan: sub.plan.slug.toUpperCase(),
+              planStatus: 'active',
+              planRenewalDate: payment.subscription?.currentPeriodEnd,
+              sitesForcedOffline: false, // Re-enable sites
+            },
+          })
+        } else {
           await db.user.update({
             where: { id: payment.userId },
             data: {
               planStatus: 'active',
-              sitesForcedOffline: false, // Re-enable sites
+              sitesForcedOffline: false,
             },
           })
         }

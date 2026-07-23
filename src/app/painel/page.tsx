@@ -32,6 +32,13 @@ function PainelContent() {
   const userName = session?.user?.name?.split(' ')[0] ?? 'Usuário'
   const [deploys, setDeploys] = React.useState<Deploy[]>([])
   const [loading, setLoading] = React.useState(true)
+  const [paymentStatus, setPaymentStatus] = React.useState<{
+    overdue: boolean
+    nearDue: boolean
+    pendingPayment?: { id: string; amount: number; paymentMethod: string; qrCode?: string; qrCodeImage?: string }
+    planStatus: string
+    daysPastDue: number
+  } | null>(null)
 
   React.useEffect(() => {
     fetch('/api/deploys')
@@ -41,6 +48,24 @@ function PainelContent() {
       })
       .catch(() => {})
       .finally(() => setLoading(false))
+
+    // Check payment status
+    fetch('/api/plans')
+      .then(r => r.json())
+      .then(data => {
+        if (data.current) {
+          const c = data.current
+          const isOverdue = c.planStatus === 'past_due' || c.planStatus === 'suspended' || c.sitesForcedOffline
+          const isNearDue = c.subscription?.daysPastDue >= 1
+          setPaymentStatus({
+            overdue: isOverdue,
+            nearDue: isNearDue && !isOverdue,
+            planStatus: c.planStatus,
+            daysPastDue: c.subscription?.daysPastDue || 0,
+          })
+        }
+      })
+      .catch(() => {})
   }, [])
 
   const activeProjects = deploys.filter(d => d.status === 'ready' || d.status === 'building').length
@@ -48,6 +73,48 @@ function PainelContent() {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
+      {/* Payment overdue banner — black/white with orange "Renovar" button */}
+      {paymentStatus?.overdue && (
+        <div className="rounded-xl border-2 border-slate-900 bg-slate-900 text-white p-5 flex items-center justify-between gap-4 flex-wrap">
+          <div className="flex items-center gap-3">
+            <div className="size-10 rounded-full bg-amber-500 flex items-center justify-center flex-shrink-0">
+              <span className="text-xl">⚠️</span>
+            </div>
+            <div>
+              <h3 className="font-bold text-white">Pagamento atrasado!</h3>
+              <p className="text-sm text-slate-300">
+                {paymentStatus.daysPastDue > 0
+                  ? `Sua assinatura está ${paymentStatus.daysPastDue} dias atrasada. `
+                  : 'Sua assinatura precisa ser renovada. '
+                }
+                Pague agora para evitar suspensão dos seus sites.
+              </p>
+            </div>
+          </div>
+          <a href="/painel/planos">
+            <button className="bg-orange-500 hover:bg-orange-600 text-white font-bold px-6 py-2.5 rounded-lg transition-colors flex items-center gap-2">
+              Renovar
+            </button>
+          </a>
+        </div>
+      )}
+
+      {/* Near due banner — less urgent */}
+      {paymentStatus?.nearDue && !paymentStatus.overdue && (
+        <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 flex items-center justify-between gap-4 flex-wrap">
+          <div className="flex items-center gap-2 text-amber-900">
+            <span className="text-lg">⏰</span>
+            <p className="text-sm">
+              <strong>Pagamento próximo do vencimento.</strong> {paymentStatus.daysPastDue} dia(s) de atraso.
+              Regularize para manter seus sites no ar.
+            </p>
+          </div>
+          <a href="/painel/planos" className="text-sm text-amber-700 hover:text-amber-900 font-semibold underline">
+            Pagar agora →
+          </a>
+        </div>
+      )}
+
       <div>
         <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">
           Olá, {userName} 👋

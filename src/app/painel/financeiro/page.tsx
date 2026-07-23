@@ -1,218 +1,238 @@
 'use client'
 
 import * as React from 'react'
+import Link from 'next/link'
 import {
-  Wallet, CreditCard, Clock, CheckCircle2, XCircle, FileText,
-  TrendingUp, DollarSign, Plus,
+  Wallet, CreditCard, Clock, CheckCircle2, XCircle, Loader2,
+  RefreshCw, QrCode, Copy, Check, AlertCircle, Crown,
 } from 'lucide-react'
 import { PainelShell } from '@/components/painel/painel-shell'
-import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
 
-const DEMO_INVOICES = [
-  {
-    id: 'INV-001',
-    description: 'Plano Starter — Sistema Mobilidade',
-    amount: 'R$ 18.000,00',
-    status: 'paid',
-    dueDate: '2026-07-01',
-    paidAt: '2026-07-01',
-  },
-  {
-    id: 'INV-002',
-    description: 'Consultoria de Infraestrutura — Setup Docker',
-    amount: 'R$ 5.000,00',
-    status: 'pending',
-    dueDate: '2026-07-30',
-  },
-]
-
-const statusConfig = {
-  paid: { label: 'Pago', icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-  pending: { label: 'Pendente', icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50' },
-  overdue: { label: 'Vencido', icon: XCircle, color: 'text-red-600', bg: 'bg-red-50' },
-  cancelled: { label: 'Cancelado', icon: XCircle, color: 'text-slate-500', bg: 'bg-slate-100' },
+interface Payment {
+  id: string
+  amount: number
+  paymentMethod: string
+  status: string
+  dueDate: string | null
+  paidAt: string | null
+  createdAt: string
+  mpPixQrCode: string | null
+  mpPixQrCodeImage: string | null
+  plan?: { name: string } | null
 }
 
 export default function FinanceiroPage() {
-  const [tab, setTab] = React.useState<'overview' | 'invoices' | 'pending'>('overview')
+  const [payments, setPayments] = React.useState<Payment[]>([])
+  const [loading, setLoading] = React.useState(true)
+  const [error, setError] = React.useState<string | null>(null)
+  const [copied, setCopied] = React.useState<string | null>(null)
 
-  const totalPaid = DEMO_INVOICES.filter((i) => i.status === 'paid')
-    .reduce((sum, i) => sum + parseFloat(i.amount.replace(/[^\d,]/g, '').replace(',', '.')), 0)
-  const totalPending = DEMO_INVOICES.filter((i) => i.status === 'pending')
-    .reduce((sum, i) => sum + parseFloat(i.amount.replace(/[^\d,]/g, '').replace(',', '.')), 0)
+  const load = React.useCallback(async () => {
+    setLoading(true)
+    try {
+      const res = await fetch('/api/payments/list')
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      setPayments(data.payments || [])
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao carregar')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  React.useEffect(() => { load() }, [load])
+
+  const pending = payments.filter((p) => p.status === 'pending')
+  const approved = payments.filter((p) => p.status === 'approved')
+  const rejected = payments.filter((p) => p.status === 'rejected' || p.status === 'cancelled')
+  const totalSpent = approved.reduce((sum, p) => sum + p.amount, 0)
+
+  const copyQr = (id: string, code: string) => {
+    navigator.clipboard.writeText(code)
+    setCopied(id)
+    setTimeout(() => setCopied(null), 2000)
+  }
 
   return (
     <PainelShell>
-      <div className="space-y-6 max-w-5xl mx-auto">
+      <div className="max-w-4xl mx-auto p-4 sm:p-6 space-y-6">
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 flex items-center gap-2">
+              <Wallet className="size-7 text-blue-600" />
+              Financeiro
+            </h1>
+            <p className="text-sm text-slate-500 mt-1">
+              Gerencie seus pagamentos e assinatura
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Link href="/painel/planos">
+              <Button className="bg-gradient-to-r from-amber-500 to-orange-600 text-white">
+                <Crown className="size-4" />
+                Ver Planos
+              </Button>
+            </Link>
+            <Button variant="ghost" size="sm" onClick={load} className="text-slate-600">
+              <RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} />
+            </Button>
+          </div>
+        </div>
+
+        {error && (
+          <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-900 flex items-center gap-2">
+            <AlertCircle className="size-4" /> {error}
+          </div>
+        )}
+
+        {/* Stats */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+            <div className="flex items-center gap-1 text-amber-600 mb-1">
+              <Clock className="size-4" />
+              <span className="text-xs font-semibold">Pendentes</span>
+            </div>
+            <p className="text-2xl font-bold text-slate-900">{pending.length}</p>
+          </div>
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+            <div className="flex items-center gap-1 text-emerald-600 mb-1">
+              <CheckCircle2 className="size-4" />
+              <span className="text-xs font-semibold">Pagos</span>
+            </div>
+            <p className="text-2xl font-bold text-slate-900">{approved.length}</p>
+          </div>
+          <div className="rounded-xl border border-red-200 bg-red-50 p-4">
+            <div className="flex items-center gap-1 text-red-600 mb-1">
+              <XCircle className="size-4" />
+              <span className="text-xs font-semibold">Recusados</span>
+            </div>
+            <p className="text-2xl font-bold text-slate-900">{rejected.length}</p>
+          </div>
+          <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
+            <div className="flex items-center gap-1 text-blue-600 mb-1">
+              <Wallet className="size-4" />
+              <span className="text-xs font-semibold">Total gasto</span>
+            </div>
+            <p className="text-2xl font-bold text-slate-900">R$ {totalSpent.toFixed(2)}</p>
+          </div>
+        </div>
+
+        {/* Pending payments (FIRST — most important) */}
         <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 flex items-center gap-2">
-            <Wallet className="size-7 text-blue-600" />
-            Financeiro
-          </h1>
-          <p className="text-sm text-slate-500 mt-1">
-            Gerencie faturas, pagamentos e acompanhe seus gastos
-          </p>
-        </div>
-
-        {/* Stats cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="rounded-xl border border-slate-200 bg-white p-5">
-            <div className="flex items-start justify-between mb-3">
-              <div className="size-10 rounded-lg bg-emerald-50 border border-emerald-200 flex items-center justify-center">
-                <DollarSign className="size-5 text-emerald-600" />
-              </div>
+          <h2 className="text-lg font-bold text-slate-900 mb-3 flex items-center gap-2">
+            <Clock className="size-5 text-amber-600" />
+            Pagamentos Pendentes
+            {pending.length > 0 && (
+              <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">{pending.length}</span>
+            )}
+          </h2>
+          {loading ? (
+            <div className="py-8 text-center"><Loader2 className="size-6 text-slate-400 animate-spin mx-auto" /></div>
+          ) : pending.length === 0 ? (
+            <div className="rounded-xl border border-slate-200 bg-white p-6 text-center">
+              <CheckCircle2 className="size-8 text-emerald-500 mx-auto mb-2" />
+              <p className="text-sm text-slate-500">Nenhum pagamento pendente. Tudo em dia! ✓</p>
             </div>
-            <div className="text-2xl font-extrabold text-slate-900">
-              R$ {totalPaid.toFixed(2).replace('.', ',')}
-            </div>
-            <div className="text-xs text-slate-500 mt-0.5">Total pago</div>
-          </div>
-          <div className="rounded-xl border border-slate-200 bg-white p-5">
-            <div className="flex items-start justify-between mb-3">
-              <div className="size-10 rounded-lg bg-amber-50 border border-amber-200 flex items-center justify-center">
-                <Clock className="size-5 text-amber-600" />
-              </div>
-            </div>
-            <div className="text-2xl font-extrabold text-slate-900">
-              R$ {totalPending.toFixed(2).replace('.', ',')}
-            </div>
-            <div className="text-xs text-slate-500 mt-0.5">Pendente</div>
-          </div>
-          <div className="rounded-xl border border-slate-200 bg-white p-5">
-            <div className="flex items-start justify-between mb-3">
-              <div className="size-10 rounded-lg bg-blue-50 border border-blue-200 flex items-center justify-center">
-                <TrendingUp className="size-5 text-blue-600" />
-              </div>
-            </div>
-            <div className="text-2xl font-extrabold text-slate-900">{DEMO_INVOICES.length}</div>
-            <div className="text-xs text-slate-500 mt-0.5">Faturas totais</div>
-          </div>
-        </div>
-
-        {/* Tabs */}
-        <div className="flex border-b border-slate-200">
-          {[
-            { id: 'overview' as const, label: 'Visão Geral', icon: Wallet },
-            { id: 'invoices' as const, label: 'Faturas', icon: FileText },
-            { id: 'pending' as const, label: 'Pagamentos Pendentes', icon: Clock },
-          ].map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
-              className={cn(
-                'flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors',
-                tab === t.id ? 'border-blue-500 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-900'
-              )}
-            >
-              <t.icon className="size-4" />
-              {t.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Tab content */}
-        {tab === 'overview' && (
-          <div className="rounded-xl border border-slate-200 bg-white p-5">
-            <h3 className="font-bold text-slate-900 mb-4">Resumo Financeiro</h3>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between py-2 border-b border-slate-100">
-                <span className="text-sm text-slate-600">Faturas pagas</span>
-                <span className="text-sm font-bold text-emerald-600">
-                  {DEMO_INVOICES.filter((i) => i.status === 'paid').length}
-                </span>
-              </div>
-              <div className="flex items-center justify-between py-2 border-b border-slate-100">
-                <span className="text-sm text-slate-600">Faturas pendentes</span>
-                <span className="text-sm font-bold text-amber-600">
-                  {DEMO_INVOICES.filter((i) => i.status === 'pending').length}
-                </span>
-              </div>
-              <div className="flex items-center justify-between py-2 border-b border-slate-100">
-                <span className="text-sm text-slate-600">Próximo vencimento</span>
-                <span className="text-sm font-bold text-slate-900">30/07/2026</span>
-              </div>
-              <div className="flex items-center justify-between py-2">
-                <span className="text-sm text-slate-600">Método de pagamento</span>
-                <span className="text-sm font-bold text-slate-900">PIX · Cartão</span>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {tab === 'invoices' && (
-          <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
-            <table className="w-full">
-              <thead className="border-b border-slate-200">
-                <tr className="text-left text-xs uppercase tracking-wider text-slate-400">
-                  <th className="px-5 py-3 font-medium">Fatura</th>
-                  <th className="px-5 py-3 font-medium">Descrição</th>
-                  <th className="px-5 py-3 font-medium">Valor</th>
-                  <th className="px-5 py-3 font-medium">Vencimento</th>
-                  <th className="px-5 py-3 font-medium">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {DEMO_INVOICES.map((inv) => {
-                  const cfg = statusConfig[inv.status as keyof typeof statusConfig] ?? statusConfig.pending
-                  const StatusIcon = cfg.icon
-                  return (
-                    <tr key={inv.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
-                      <td className="px-5 py-4 text-sm font-mono text-slate-700">{inv.id}</td>
-                      <td className="px-5 py-4 text-sm text-slate-900">{inv.description}</td>
-                      <td className="px-5 py-4 text-sm font-semibold text-slate-900">{inv.amount}</td>
-                      <td className="px-5 py-4 text-sm text-slate-500">
-                        {new Date(inv.dueDate).toLocaleDateString('pt-BR')}
-                      </td>
-                      <td className="px-5 py-4">
-                        <span className={cn('inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-md', cfg.bg, cfg.color)}>
-                          <StatusIcon className="size-3" />
-                          {cfg.label}
-                        </span>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        {tab === 'pending' && (
-          <div className="space-y-3">
-            {DEMO_INVOICES.filter((i) => i.status === 'pending').length === 0 ? (
-              <div className="rounded-xl border border-slate-200 bg-white p-12 text-center">
-                <CheckCircle2 className="size-12 text-emerald-300 mx-auto mb-3" />
-                <h3 className="text-lg font-bold text-slate-900">Tudo em dia!</h3>
-                <p className="text-sm text-slate-500 mt-1">Não há pagamentos pendentes.</p>
-              </div>
-            ) : (
-              DEMO_INVOICES.filter((i) => i.status === 'pending').map((inv) => (
-                <div key={inv.id} className="rounded-xl border border-amber-200 bg-amber-50 p-5">
+          ) : (
+            <div className="grid gap-3">
+              {pending.map((p) => (
+                <div key={p.id} className="rounded-xl border border-amber-300 bg-amber-50 p-4">
                   <div className="flex items-start justify-between gap-4 flex-wrap">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h3 className="font-bold text-slate-900">{inv.description}</h3>
-                        <span className="text-xs font-medium px-2 py-0.5 rounded-md bg-amber-100 text-amber-700">
-                          Pendente
-                        </span>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-bold text-slate-900">{p.plan?.name || 'Assinatura'}</h3>
+                        <span className="text-xs bg-amber-200 text-amber-800 px-2 py-0.5 rounded-full">Pendente</span>
                       </div>
-                      <p className="text-xs text-slate-500">
-                        Fatura {inv.id} · Vence em {new Date(inv.dueDate).toLocaleDateString('pt-BR')}
+                      <p className="text-sm font-mono font-semibold text-slate-900 mt-1">R$ {p.amount.toFixed(2)}</p>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        {p.paymentMethod === 'pix' ? 'PIX' : 'Cartão'} ·
+                        {' '}Criado em {new Date(p.createdAt).toLocaleString('pt-BR')}
+                        {p.dueDate && ` · Expira em ${new Date(p.dueDate).toLocaleTimeString('pt-BR')}`}
                       </p>
                     </div>
-                    <div className="text-right">
-                      <div className="text-lg font-extrabold text-slate-900">{inv.amount}</div>
-                      <button className="mt-2 inline-flex items-center gap-1.5 h-8 px-3 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-semibold">
-                        <CreditCard className="size-3.5" />
-                        Pagar agora
-                      </button>
-                    </div>
+                    {p.paymentMethod === 'pix' && p.mpPixQrCode && (
+                      <div className="flex items-center gap-2">
+                        {p.mpPixQrCodeImage && (
+                          <div className="p-2 bg-white border-2 border-slate-200 rounded-lg">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={`data:image/png;base64,${p.mpPixQrCodeImage}`} alt="QR PIX" className="size-24" />
+                          </div>
+                        )}
+                        <button
+                          onClick={() => copyQr(p.id, p.mpPixQrCode!)}
+                          className="px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold flex items-center gap-1"
+                        >
+                          {copied === p.id ? <><Check className="size-3" /> Copiado!</> : <><Copy className="size-3" /> Copiar PIX</>}
+                        </button>
+                      </div>
+                    )}
+                    {p.paymentMethod === 'credit_card' && (
+                      <Link href="/painel/planos">
+                        <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white">
+                          <CreditCard className="size-3.5" /> Pagar agora
+                        </Button>
+                      </Link>
+                    )}
                   </div>
+                  {p.paymentMethod === 'credit_card' && (
+                    <p className="text-xs text-red-600 mt-2">
+                      ⚠️ Pagamento recusado. Clique em "Pagar agora" para tentar novamente.
+                    </p>
+                  )}
                 </div>
-              ))
-            )}
-          </div>
-        )}
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* History */}
+        <div>
+          <h2 className="text-lg font-bold text-slate-900 mb-3">Histórico de Pagamentos</h2>
+          {approved.length === 0 && rejected.length === 0 ? (
+            <div className="rounded-xl border border-slate-200 bg-white p-6 text-center">
+              <p className="text-sm text-slate-500">Nenhum pagamento ainda</p>
+            </div>
+          ) : (
+            <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-slate-50 border-b border-slate-200">
+                    <tr>
+                      <th className="px-4 py-3 text-left font-semibold text-slate-700">Plano</th>
+                      <th className="px-4 py-3 text-left font-semibold text-slate-700">Valor</th>
+                      <th className="px-4 py-3 text-left font-semibold text-slate-700">Método</th>
+                      <th className="px-4 py-3 text-left font-semibold text-slate-700">Status</th>
+                      <th className="px-4 py-3 text-left font-semibold text-slate-700">Data</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[...approved, ...rejected].map((p) => (
+                      <tr key={p.id} className="border-t border-slate-100 hover:bg-slate-50">
+                        <td className="px-4 py-3 font-semibold text-slate-900">{p.plan?.name || '—'}</td>
+                        <td className="px-4 py-3 font-mono font-semibold text-slate-900">R$ {p.amount.toFixed(2)}</td>
+                        <td className="px-4 py-3 text-slate-700">{p.paymentMethod === 'pix' ? 'PIX' : 'Cartão'}</td>
+                        <td className="px-4 py-3">
+                          <span className={`text-xs px-2 py-0.5 rounded-full ${
+                            p.status === 'approved' ? 'bg-emerald-100 text-emerald-700' :
+                            p.status === 'rejected' ? 'bg-red-100 text-red-700' :
+                            'bg-slate-100 text-slate-600'
+                          }`}>
+                            {p.status === 'approved' ? '✓ Pago' : p.status === 'rejected' ? '✕ Recusado' : p.status}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-xs text-slate-500">
+                          {p.paidAt ? new Date(p.paidAt).toLocaleDateString('pt-BR') : new Date(p.createdAt).toLocaleDateString('pt-BR')}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </PainelShell>
   )
