@@ -283,3 +283,9 @@ model Database {
   @@unique([userId, slug])
   @@index([userId])
 }
+
+model Setting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}

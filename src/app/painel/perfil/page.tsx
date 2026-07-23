@@ -400,7 +400,7 @@ export default function PainelPerfilPage() {
               <Input
                 value={form.cpf}
                 onChange={(e) => setForm({ ...form, cpf: e.target.value })}
-                className={`h-10 font-mono ${profile.cpf ? 'bg-slate-50 border-slate-200 text-slate-500' : 'bg-white border-slate-300 text-slate-900'}`}
+                className={`h-10 font-mono text-slate-900 ${profile.cpf ? 'bg-slate-50 border-slate-200' : 'bg-white border-slate-300'}`}
                 placeholder="000.000.000-00"
                 readOnly={!!profile.cpf}
                 maxLength={14}

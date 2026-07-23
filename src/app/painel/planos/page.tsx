@@ -493,7 +493,7 @@ function SubscribeModal({
                 placeholder="000.000.000-00"
                 readOnly={hasCpf}
                 required
-                className={`h-10 font-mono ${hasCpf ? 'bg-slate-50 border-slate-200 text-slate-500' : 'bg-white border-slate-300'}`}
+                className={`h-10 font-mono text-slate-900 ${hasCpf ? 'bg-slate-50 border-slate-200' : 'bg-white border-slate-300'}`}
               />
               {!hasCpf && (
                 <p className="text-xs text-slate-400 mt-1">
